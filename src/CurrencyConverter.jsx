@@ -4,33 +4,38 @@ import axios from "axios";
 const CurrencyConverter = () => {
   const [currencies, setCurrencies] = useState([]);
   const [fromCurrency, setFromCurrency] = useState("USD");
+  const [toCurrency, setToCurrency] = useState("INR");
   const [fromAmountString, setFromAmountString] = useState("1");
   const [fromAmount, setFromAmount] = useState(1);
-  const [toCurrency, setToCurrency] = useState("INR");
   const [exchangeRate, setExchangeRate] = useState(0);
-
   const [valueINR, setValueINR] = useState(0);
   const [valueUSD, setValueUSD] = useState(0);
+
+  console.log(fromCurrency, toCurrency);
 
   useEffect(() => {
     axios
       .get("https://api.exchangerate-api.com/v4/latest/USD")
       .then((response) => {
         setCurrencies(Object.keys(response.data.rates));
+        setExchangeRate(response.data.rates[toCurrency]);
+        setValueINR(response.data.rates["INR"]);
+        setValueUSD(response.data.rates["USD"]);
       });
   }, []);
 
-  useEffect(() => {
-    if (fromCurrency && toCurrency) {
-      axios
-        .get(`https://api.exchangerate-api.com/v4/latest/${fromCurrency}`)
-        .then((response) => {
-          setExchangeRate(response.data.rates[toCurrency]);
-          setValueINR(response.data.rates["INR"]);
-          setValueUSD(response.data.rates["USD"]);
-        });
+  const getExchangeRate = async () => {
+    try {
+      const response = await axios.get(
+        `https://api.exchangerate-api.com/v4/latest/${fromCurrency}`
+      );
+      setExchangeRate(response.data.rates[toCurrency]);
+      setValueINR(response.data.rates["INR"]);
+      setValueUSD(response.data.rates["USD"]);
+    } catch (error) {
+      console.error("Error: ", error);
     }
-  }, [fromCurrency, toCurrency]);
+  };
 
   function formatINR(value) {
     if (value >= 1e7) {
@@ -44,7 +49,9 @@ const CurrencyConverter = () => {
   }
 
   function formatUSD(value) {
-    if (value >= 1e9) {
+    if (value >= 1e12) {
+      return USDollar.format((value / 1e12).toFixed(2)) + " trillion";
+    } else if (value >= 1e9) {
       return USDollar.format((value / 1e9).toFixed(2)) + " billion";
     } else if (value >= 1e6) {
       return USDollar.format((value / 1e6).toFixed(2)) + " million";
@@ -62,6 +69,8 @@ const CurrencyConverter = () => {
       value = value.slice(0, -1) * 1000000; // Convert 'm' to million
     } else if (value.endsWith("b") || value.endsWith("B")) {
       value = value.slice(0, -1) * 1000000000; // Convert 'b' to billion
+    } else if (value.endsWith("t") || value.endsWith("T")) {
+      value = value.slice(0, -1) * 1000000000000; // Convert 't' to trillion
     }
     setFromAmount(value);
     setFromAmountString(event.target.value);
@@ -78,42 +87,62 @@ const CurrencyConverter = () => {
   });
 
   const currencyFormatter = (currency, value) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat(`en-${currency === "INR" ? "IN" : "US"}`, {
       style: "currency",
-      currency: currency,
+      currency: currencies.includes(currency) ? currency : "USD",
     }).format(value);
   };
 
+  // get the currency symbol based on the currency code for the given currency
+
+  const AutoComplete = ({ list, onChange, value }) => {
+    return (
+      <>
+        <input
+          list={list}
+          placeholder="select"
+          className="select-opts"
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+          }}
+        />
+        <datalist id={list}>
+          {currencies.map((currency) => (
+            <option key={currency} value={currency}>
+              {currency}
+            </option>
+          ))}
+        </datalist>
+      </>
+    );
+  };
 
   return (
-    <div>
+    <div className="main">
       <h1>Currency Converter</h1>
+
       <div className="options">
         <input
           type="text"
           value={fromAmountString}
           onChange={handleInputChange}
+          placeholder="Enter amount to convert"
         />
-        <select
+        <AutoComplete
+          list="from-currencies"
+          defaultValue={fromCurrency}
+          onChange={setFromCurrency}
           value={fromCurrency}
-          onChange={(e) => setFromCurrency(e.target.value)}
-        >
-          {currencies.map((currency) => (
-            <option key={currency} value={currency}>
-              {currency}
-            </option>
-          ))}
-        </select>
-        <select
+        />
+        <AutoComplete
+          list="to-currencies"
+          defaultValue={toCurrency}
+          onChange={setToCurrency}
           value={toCurrency}
-          onChange={(e) => setToCurrency(e.target.value)}
-        >
-          {currencies.map((currency) => (
-            <option key={currency} value={currency}>
-              {currency}
-            </option>
-          ))}
-        </select>
+        />
+
+        <button onClick={getExchangeRate}>GO</button>
       </div>
       <h2 className="fixed-values">
         {currencyFormatter(fromCurrency, fromAmount)} ={" "}
@@ -130,7 +159,7 @@ const CurrencyConverter = () => {
         <h4>Value in INR: </h4>
         <p>
           {currencyFormatter(fromCurrency, fromAmount)} ={" "}
-          {formatINR( fromAmount * valueINR)} INR
+          {formatINR(fromAmount * valueINR)} INR
         </p>
       </div>
     </div>

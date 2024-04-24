@@ -40,7 +40,6 @@ const CountryChart = () => {
       
       }}>Country Chart</h2>
       <div>
-        <label>Search:</label>
         <input
           type="text"
           placeholder="Search Country..."
