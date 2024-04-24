@@ -10,12 +10,11 @@ const CurrencyConverter = () => {
   const [exchangeRate, setExchangeRate] = useState(0);
   const [valueINR, setValueINR] = useState(0);
   const [valueUSD, setValueUSD] = useState(0);
-
-  console.log(fromCurrency, toCurrency);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     axios
-      .get("https://api.exchangerate-api.com/v4/latest/USD")
+      .get("https://api.exchangerate-api.com/v4/latest/INR")
       .then((response) => {
         setCurrencies(Object.keys(response.data.rates));
         setExchangeRate(response.data.rates[toCurrency]);
@@ -25,6 +24,7 @@ const CurrencyConverter = () => {
   }, []);
 
   const getExchangeRate = async () => {
+    setLoading(true);
     try {
       const response = await axios.get(
         `https://api.exchangerate-api.com/v4/latest/${fromCurrency}`
@@ -32,10 +32,16 @@ const CurrencyConverter = () => {
       setExchangeRate(response.data.rates[toCurrency]);
       setValueINR(response.data.rates["INR"]);
       setValueUSD(response.data.rates["USD"]);
+      setLoading(false);
     } catch (error) {
       console.error("Error: ", error);
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    getExchangeRate();
+  }, [fromCurrency, toCurrency]);
 
   function formatINR(value) {
     if (value >= 1e7) {
@@ -95,7 +101,7 @@ const CurrencyConverter = () => {
 
   // get the currency symbol based on the currency code for the given currency
 
-  const AutoComplete = ({ list, onChange, value }) => {
+  const AutoComplete1 = ({ list, onChange, value }) => {
     return (
       <>
         <input
@@ -118,6 +124,27 @@ const CurrencyConverter = () => {
     );
   };
 
+  const AutoComplete = ({ list, onChange, value }) => {
+    return (
+      <>
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="select-opts"
+          id={list}
+        >
+          {currencies.map((currency) => (
+            <option key={currency} value={currency}>
+              {currency}
+            </option>
+          ))}
+        </select>
+      </>
+    );
+  };
+
+  const Loader = () => <div className="loader"></div>;
+
   return (
     <div className="main">
       <h1>Currency Converter</h1>
@@ -131,36 +158,51 @@ const CurrencyConverter = () => {
         />
         <AutoComplete
           list="from-currencies"
-          defaultValue={fromCurrency}
           onChange={setFromCurrency}
           value={fromCurrency}
         />
         <AutoComplete
           list="to-currencies"
-          defaultValue={toCurrency}
           onChange={setToCurrency}
           value={toCurrency}
         />
-
-        <button onClick={getExchangeRate}>GO</button>
       </div>
-      <h2 className="fixed-values">
+      <h2>
         {currencyFormatter(fromCurrency, fromAmount)} ={" "}
-        {currencyFormatter(toCurrency, exchangeRate * fromAmount)}
+        {loading ? (
+          <Loader />
+        ) : (
+          <>
+            {currencyFormatter(toCurrency, exchangeRate * fromAmount)}
+          </>
+        )}
       </h2>
+
       <div className="fixed-values">
         <h4>Value in USD: </h4>
-        <p>
-          {currencyFormatter(fromCurrency, fromAmount)} ={" "}
-          {formatUSD(fromAmount * valueUSD)} USD
-        </p>
+        <div>
+          {loading ? (
+            <Loader />
+          ) : (
+            <p>
+              {currencyFormatter(fromCurrency, fromAmount)} ={" "}
+              {formatUSD(fromAmount * valueUSD)} USD
+            </p>
+          )}
+        </div>
       </div>
       <div className="fixed-values">
         <h4>Value in INR: </h4>
-        <p>
-          {currencyFormatter(fromCurrency, fromAmount)} ={" "}
-          {formatINR(fromAmount * valueINR)} INR
-        </p>
+        <div>
+          {loading ? (
+            <Loader />
+          ) : (
+            <p>
+              {currencyFormatter(fromCurrency, fromAmount)} ={" "}
+              {formatINR(fromAmount * valueINR)} INR
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
