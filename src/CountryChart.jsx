@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
 import { currency_data } from "./country_data";
 
-const CountryChart = () => {
+const CountryChart = ({
+  fromCurrency,
+  toCurrency,
+  setFromCurrency,
+  setToCurrency,
+}) => {
   const [data, setData] = useState();
   const [filteredData, setFilteredData] = useState(Object.keys(currency_data));
   const [search, setSearch] = useState("");
+  const [toggle, setToggle] = useState(false);
 
   useEffect(() => {
     setData(Object.keys(currency_data));
@@ -35,10 +41,32 @@ const CountryChart = () => {
 
   return (
     <div>
-      <h2 style={{
-        marginTop: "1rem",
-      
-      }}>Country Chart</h2>
+      <h4>
+        Toggle to select the currency you want to convert from or to by clicking
+        on the country code in the table.
+      </h4>
+      <div className="toggle-container">
+        <p>From</p>
+        <label class="switch">
+          <input
+            type="checkbox"
+            value={toggle}
+            onChange={() => {
+              setToggle(!toggle);
+            }}
+          />
+          <span class="slider"></span>
+        </label>
+        <p>To</p>
+      </div>
+      <h2
+        style={{
+          marginTop: "1rem",
+        }}
+      >
+        Country Chart
+      </h2>
+
       <div>
         <input
           type="text"
@@ -59,7 +87,13 @@ const CountryChart = () => {
         <tbody>
           {filteredData?.map((country) => {
             return (
-              <tr key={country}>
+              <tr
+                key={country}
+                onClick={() => {
+                  toggle ? setToCurrency(country) : setFromCurrency(country);
+                }}
+                className="table-row"
+              >
                 <td>{country}</td>
                 <td>{currency_data[country].country}</td>
                 <td>{currency_data[country].currency_name}</td>

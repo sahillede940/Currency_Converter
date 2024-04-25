@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-const CurrencyConverter = () => {
+const CurrencyConverter = ({
+  fromCurrency,
+  toCurrency,
+  setFromCurrency,
+  setToCurrency,
+}) => {
   const [currencies, setCurrencies] = useState([]);
-  const [fromCurrency, setFromCurrency] = useState("USD");
-  const [toCurrency, setToCurrency] = useState("INR");
   const [fromAmountString, setFromAmountString] = useState("1");
   const [fromAmount, setFromAmount] = useState(1);
   const [exchangeRate, setExchangeRate] = useState(0);
@@ -13,6 +16,7 @@ const CurrencyConverter = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    setLoading(true);
     axios
       .get("https://api.exchangerate-api.com/v4/latest/INR")
       .then((response) => {
@@ -20,6 +24,11 @@ const CurrencyConverter = () => {
         setExchangeRate(response.data.rates[toCurrency]);
         setValueINR(response.data.rates["INR"]);
         setValueUSD(response.data.rates["USD"]);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error: ", error);
+        setLoading(false);
       });
   }, []);
 
@@ -172,9 +181,7 @@ const CurrencyConverter = () => {
         {loading ? (
           <Loader />
         ) : (
-          <>
-            {currencyFormatter(toCurrency, exchangeRate * fromAmount)}
-          </>
+          <>{currencyFormatter(toCurrency, exchangeRate * fromAmount)}</>
         )}
       </h2>
 
